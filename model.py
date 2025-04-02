@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import PyPDF2
@@ -144,13 +143,10 @@ if uploaded_file:
         st.subheader("⚠️ Risk Level")
         st.markdown(f"**Risk Classification:** `{risk_level}`")
 
-        st.subheader("📊 Sentiment Score Distribution")
-
         if isinstance(sentiment_scores, dict):
-            fig, ax = plt.subplots()
-            ax.bar(sentiment_scores.keys(), sentiment_scores.values(), color=['green', 'gray', 'red', 'blue'])
-            ax.set_title("Sentiment Score Distribution")
-            st.pyplot(fig)
+            st.write("Sentiment Scores:")
+            for key, value in sentiment_scores.items():
+                st.write(f"{key}: {value}")
         elif isinstance(sentiment_scores, str):
             st.write(f"Sentiment: {sentiment_scores}")
         else:
