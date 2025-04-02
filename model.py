@@ -14,7 +14,11 @@ import nltk
 from transformers import pipeline
 
 # Download VADER if not already installed
-nltk.download('vader_lexicon')
+try:
+    nltk.data.find('vader_lexicon')
+except LookupError:
+    nltk.download('vader_lexicon')
+
 sia = SentimentIntensityAnalyzer()
 
 # Load FinBERT model
@@ -29,8 +33,8 @@ try:
 except:
     svm_model, log_reg_model, vectorizer = None, None, None
 
-#Load LLM model using pytorch, solving the keras issue.
-sentiment_analysis = pipeline("sentiment-analysis", model="siebert/sentiment-roberta-large-english", framework="pt")
+#Load LLM model using pytorch. Corrected model to use a pytorch based model.
+sentiment_analysis = pipeline("sentiment-analysis", model="cardiffnlp/twitter-roberta-base-sentiment", framework="pt")
 
 def extract_text_from_file(uploaded_file):
     """Extract text from uploaded document."""
