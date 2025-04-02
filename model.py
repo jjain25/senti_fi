@@ -13,7 +13,6 @@ from nltk.sentiment import SentimentIntensityAnalyzer
 import nltk
 from transformers import pipeline
 
-# Download VADER if not already installed
 try:
     nltk.data.find('vader_lexicon')
 except LookupError:
@@ -21,11 +20,9 @@ except LookupError:
 
 sia = SentimentIntensityAnalyzer()
 
-# Load FinBERT model
 tokenizer = AutoTokenizer.from_pretrained("ProsusAI/finbert")
 model = AutoModelForSequenceClassification.from_pretrained("ProsusAI/finbert")
 
-# Load ML models (dummy models for now, train separately and replace these files)
 try:
     svm_model = joblib.load("svm_sentiment_model.pkl")
     log_reg_model = joblib.load("log_reg_sentiment_model.pkl")
@@ -33,11 +30,9 @@ try:
 except:
     svm_model, log_reg_model, vectorizer = None, None, None
 
-#Load LLM model using pytorch. Corrected model to use a pytorch based model.
 sentiment_analysis = pipeline("sentiment-analysis", model="cardiffnlp/twitter-roberta-base-sentiment", framework="pt")
 
 def extract_text_from_file(uploaded_file):
-    """Extract text from uploaded document."""
     if uploaded_file.type == "application/pdf":
         reader = PyPDF2.PdfReader(uploaded_file)
         return " ".join(page.extract_text() for page in reader.pages if page.extract_text())
@@ -49,14 +44,12 @@ def extract_text_from_file(uploaded_file):
     return ""
 
 def analyze_sentiment_finbert(text):
-    """Perform sentiment analysis using FinBERT."""
     inputs = tokenizer(text, return_tensors="pt", truncation=True, max_length=512)
     outputs = model(**inputs)
     scores = torch.nn.functional.softmax(outputs.logits, dim=-1).detach().numpy()[0]
     return {"positive": scores[0], "neutral": scores[1], "negative": scores[2]}
 
 def analyze_sentiment_ml(text, model_type):
-    """Perform sentiment analysis using SVM or Logistic Regression."""
     if not vectorizer:
         return "ML models are not loaded. Train and upload them first."
     text_vectorized = vectorizer.transform([text])
@@ -67,24 +60,21 @@ def analyze_sentiment_ml(text, model_type):
     return "Positive" if prediction == 1 else "Negative"
 
 def analyze_sentiment_vader(text):
-    """Perform sentiment analysis using VADER."""
     scores = sia.polarity_scores(text)
     return scores
 
 def analyze_sentiment_llm(text):
-  """Perform sentiment analysis using LLM."""
-  result = sentiment_analysis(text)
-  return result[0]
+    result = sentiment_analysis(text)
+    return result[0]
 
 def analyze_sentiment_manual_dict(text):
-    """Perform sentiment analysis using a manual dictionary."""
     positive_words = ["good", "great", "excellent", "positive", "strong", "growth", "increase", "profit", "success", "stable"]
     negative_words = ["bad", "poor", "negative", "weak", "decline", "loss", "risk", "volatile", "uncertainty", "failure"]
-    
+
     text_lower = text.lower()
     positive_count = sum(text_lower.count(word) for word in positive_words)
     negative_count = sum(text_lower.count(word) for word in negative_words)
-    
+
     if positive_count > negative_count:
         return {"sentiment": "Positive", "positive_count": positive_count, "negative_count": negative_count}
     elif negative_count > positive_count:
@@ -93,14 +83,13 @@ def analyze_sentiment_manual_dict(text):
         return {"sentiment": "Neutral", "positive_count": positive_count, "negative_count": negative_count}
 
 def classify_risk(sentiment_score):
-    """Classify risk level based on sentiment score."""
     if isinstance(sentiment_score, dict):
         compound = sentiment_score.get('compound', 0)
     elif isinstance(sentiment_score, str):
-      if sentiment_score == 'Positive':
-        compound = 1
-      else:
-        compound = -1
+        if sentiment_score == 'Positive':
+            compound = 1
+        else:
+            compound = -1
     else:
         compound = 0
 
@@ -114,11 +103,9 @@ def classify_risk(sentiment_score):
         return "Stable"
 
 def filter_text_by_keyword(text, keyword):
-    """Filter extracted text based on user-specified keyword."""
     filtered_sentences = [sentence for sentence in text.split('. ') if keyword.lower() in sentence.lower()]
     return "\n".join(filtered_sentences) if filtered_sentences else "No relevant sentences found."
 
-# Streamlit UI
 st.set_page_config(page_title="Financial Sentiment Analysis", layout="wide")
 st.title("📊 Financial Sentiment Analysis Dashboard")
 
@@ -149,7 +136,7 @@ if uploaded_file:
         elif model_choice == "Manual Dictionary":
             sentiment_scores = analyze_sentiment_manual_dict(text)
         elif model_choice == "LLM":
-          sentiment_scores = analyze_sentiment_llm(text)
+            sentiment_scores = analyze_sentiment_llm(text)
 
         st.json(sentiment_scores)
 
@@ -165,6 +152,6 @@ if uploaded_file:
             ax.set_title("Sentiment Score Distribution")
             st.pyplot(fig)
         elif isinstance(sentiment_scores, str):
-          st.write(f"Sentiment: {sentiment_scores}")
+            st.write(f"Sentiment: {sentiment_scores}")
         else:
-          st.write("Sentiment analysis result cannot be displayed in chart format.")
+            st.write("Sentiment analysis result cannot be displayed in chart format.")
